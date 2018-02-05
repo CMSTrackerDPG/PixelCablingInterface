@@ -20,14 +20,15 @@ defaultFillColor = "255, 255, 255"
 #################################################################### PIXEL TRACKER MAP
 
 class PixelTrackerMap:
-  def __init__(self, cablingInfoDetID, cablingInfoFEDID, inputFileName, searchOption):
-    self.geometryFilenames = []
-    self.inputModules = {}
-    self.SVGStream = ""
+  def __init__(self, cablingInfoDetID, cablingInfoFEDID, inputFileName, searchOption, randomColors):
+    self.geometryFilenames  = []
+    self.inputModules       = {}
+    self.SVGStream          = ""
     # self.cablingInfoDetID = pickle.load(open("DATA/cablingDic.pkl" ,"rb"))
     self.cablingInfoDetID = cablingInfoDetID
     self.cablingInfoFEDID = cablingInfoFEDID
-    self.searchOption = searchOption
+    self.searchOption     = searchOption
+    self.useRandomColors  = randomColors
     
     for i in range(maxPxBarrel):
       self.geometryFilenames.append("DATA/Geometry/vertices_barrel_" + str(i + 1))
@@ -38,7 +39,7 @@ class PixelTrackerMap:
     # print(self.geometryFilenames)
     with open(inputFileName, "r") as input:
       for line in input:
-        lineSpl = line.strip().split(" ")
+        lineSpl = line.strip().split(" ") # <generic id> + R G B
         
         objID = lineSpl[0]
         channels = []
@@ -58,11 +59,16 @@ class PixelTrackerMap:
         # print(objID)
         if int(objID) not in self.inputModules:
           if len(lineSpl) > 1:
-            # self.inputModules.update({lineSpl[0] : "".join([lineSpl[1] + ", " + lineSpl[2] + ", " + lineSpl[3]])})
-            R = str(random.randint(0, 256))
-            G = str(random.randint(0, 256))
-            B = str(random.randint(0, 256))
-            self.inputModules.update({int(objID) : ["".join([R + ", " + G + ", " + B]), channels]})
+
+            colorStr = ""
+            if self.useRandomColors == True:
+              R = str(random.randint(0, 256))
+              G = str(random.randint(0, 256))
+              B = str(random.randint(0, 256))
+              colorStr = "".join([R + ", " + G + ", " + B])
+            else:
+              colorStr = "".join([lineSpl[1] + ", " + lineSpl[2] + ", " + lineSpl[3]])
+            self.inputModules.update({int(objID) : [colorStr, channels]})
           else:
             self.inputModules.update({int(objID) : ["255, 0, 0", channels]})   
         elif int(objID) in self.inputModules and len(lineSpl) > 1:  # another instance of given FEDID is specified somewhere else, so add current channels to the existing list 
@@ -265,20 +271,22 @@ class PixelTrackerMap:
     
 ######################################################################## LOAD PARAMS
 
-inputName = "inputForPixelTrackerMap.dat"
+inputName         = "inputForPixelTrackerMap.dat"
 fedDBInfoFileName = ""
-searchOption = "rawid"
+searchOption      = "rawid"
 outDicTxtFileName = "/tmp/tmptmp.tmp"
+randomColors      = True;
 if len(sys.argv) > 1:
-  inputName = sys.argv[1]
+  inputName         = sys.argv[1]
   fedDBInfoFileName = sys.argv[2]
-  searchOption = sys.argv[3]
+  searchOption      = sys.argv[3]
   outDicTxtFileName = sys.argv[4]
+  randomColors      = False if sys.argv[5] == "0" else True
     
 ######################################################################## DIC BUILDER
 
-cablingFileName = "DATA/CablingDB/pxCabl.csv"
-detIdDicFileName = "DATA/detids.dat"
+cablingFileName   = "DATA/CablingDB/pxCabl.csv"
+detIdDicFileName  = "DATA/detids.dat"
 
 pixelCablingInfoDic = {}
 pixelCablingInfoDicFed = {}
@@ -362,5 +370,5 @@ with open(outDicTxtFileName, "w") as tmpFile:
 
 #################################################################### CALL MAIN STAFF 
 
-obj = PixelTrackerMap(pixelCablingInfoDic, pixelCablingInfoDicFed, inputName, searchOption)
+obj = PixelTrackerMap(pixelCablingInfoDic, pixelCablingInfoDicFed, inputName, searchOption, randomColors)
 obj.DrawMap()  

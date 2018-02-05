@@ -10,46 +10,130 @@ $cablingTxt = "";
 $searchOption = "rawid";
 $outDicTxtFileName = "/tmp/pixelcablingweb_cablingInfo.dat";
 
-$intervalBetweenReproduction = 3600;
+$intervalBetweenReproduction = 3600 * 4;
 
 $gtPlaceholder = "92X_upgrade2017_realistic_v11";
+
+// MIN MAX FIND
+$currMin = 9999999999.0;
+$currMax = -9999999999.0;
+
+
+// PALETTE BUILDING
+function GetPaletteColorForValue($val, $currMin, $currMax)
+{
+  // echo $val." ";
+  $pos = ($val - $currMin) / ($currMax - $currMin);
+
+  $R = 0;
+  $G = 0;
+  $B = 0;
+
+  // echo $pos."\t";
+
+  if ($pos < 0.5)
+  {
+    $pos = $pos * 2.0;
+    $B = intval((1.0 - $pos) * 255);
+    $G = intval($pos * 255);
+  }
+  else
+  {
+    $pos = ($pos - 0.5) * 2.0;
+    $R = intval($pos * 255);
+    $G = intval((1.0 - $pos) * 255);
+  }
+  return $R." ".$G." ".$B;
+}
 
 if (isset($_POST["getCabling"]))
 {
   $cablingTxt   = $_POST["getCabling"];
   $entity_id    = $_POST["entity_id"];
   $searchOption = $_POST["searchOption"];
+  $mapOption    = $_POST["mapOption"];
   $GT_id        = trim($_POST["GT_id"]);
-  
-  $entity_id    = str_replace("\r", " ", $entity_id);
-	$entity_id    = str_replace("\n", "", $entity_id); 
-  $entity_idSpl = explode(" ", $entity_id);
-  $deltaTime    = 0;
-  if ($GT_id === "")
-  {
-    $GT_id = $gtPlaceholder;
-  }
-  
+
   $execTime = time();
   
   $inputFileName      = "/tmp/pixelCablingIds_".$execTime.".dat";
   $outputXMLFileName  = "/tmp/pixelTrackerMap_".$execTime.".xml";
   $fedDBInfoFile      = "/tmp/dbCablData_".$GT_id.".dat";
-  
+  $useRandomBinColors = "1";
+   
   exec("echo > $inputFileName"); // create empty input file for Pixel Tracker Map Builder
-  for ($i = 0; $i < count($entity_idSpl); $i++)
+
+  // echo $inputFileName."\n";
+
+  $entity_idSpl;
+  if ($mapOption === "true")
   {
-    if ($entity_idSpl[$i] != "" && $entity_idSpl[$i] != " ")
+    $entity_idSpl = explode("\n", $entity_id);
+
+    for ($i = 0; $i < count($entity_idSpl); $i++)
     {
-      // right now only static (one) color is allowed
-      exec("echo '$entity_idSpl[$i] 255 0 0' >> $inputFileName"); // append (>>) to the file 
+      // if (strlen(trim(" ", $entity_idSpl[$i])) == 0) continue;
+
+      $lineSpl = explode(" ", $entity_idSpl[$i]);
+
+
+
+      $currVal = floatval($lineSpl[1]);
+
+      if ($currVal > $currMax){
+        $currMax = $currVal;
+      }
+      if ($currVal < $currMin){
+        $currMin = $currVal;
+      }
     }
-  } 
+
+    if ($currMin == $currMax)
+    {
+      $currMin = $currMin - 1.0;
+    }
+
+    // echo "MIN/MAX: ".$currMin."/".$currMax." ";
+    // echo "2ND PASS...";
+
+    // SECOND PASS
+    for ($i = 0; $i < count($entity_idSpl); $i++)
+    {
+      // if (strlen(trim(" ", $entity_idSpl[$i])) == 0) continue;
+
+      $currStr = str_replace("\r", "", $entity_idSpl[$i]);
+      $lineSpl = explode(" ", $currStr);
+
+      $RGB = GetPaletteColorForValue(floatval($lineSpl[1]), $currMin, $currMax);
+      exec("echo '$lineSpl[0] $RGB' >> $inputFileName"); // append (>>) to the file
+    }
+    $useRandomBinColors = "0";
+  }
+  else{
+    $entity_id    = str_replace("\r", " ", $entity_id);
+    $entity_id    = str_replace("\n", "", $entity_id);
+    $entity_idSpl = explode(" ", $entity_id);
+
+    for ($i = 0; $i < count($entity_idSpl); $i++)
+    {
+      if ($entity_idSpl[$i] != "" && $entity_idSpl[$i] != " ")
+      {
+        // right now only static (one) color is allowed
+        exec("echo '$entity_idSpl[$i] 100 100 100' >> $inputFileName"); // append (>>) to the file 
+      }
+    } 
+  }
+  
+  if ($GT_id === "")
+  {
+    $GT_id = $gtPlaceholder;
+  }
+  
   $output = shell_exec("python ConcatScript.py > DATA/CablingDB/pxCabl.csv 2>&1");
   // echo "<pre>$output</pre>";
 
   // THIS IS ONLY SEEMS LIKE A REAL SOLUTION BUT OTHERWISE WE ARE NOT ABLE TO ACCESS NEWER GTs, SO THE ONLY SOLUTION FOR THIS $#@%#@$%@ ARE STATIC CABLING FILES
-  
+  $deltaTime    = 0;
   if (file_exists($fedDBInfoFile)) # PREVENTS FROM HUGE LOADING TIMES, DB file is going to be updated after an hour
   {
     $fileChangedTime = filemtime($fedDBInfoFile);
@@ -68,7 +152,7 @@ if (isset($_POST["getCabling"]))
   
   // NOW CREATE XML FILE
   
-  $output = shell_exec("python PixelTrackerMap.py $inputFileName $fedDBInfoFile $searchOption $outDicTxtFileName > $outputXMLFileName 2>&1");
+  $output = shell_exec("python PixelTrackerMap.py $inputFileName $fedDBInfoFile $searchOption $outDicTxtFileName $useRandomBinColors > $outputXMLFileName 2>&1");
   // echo "<pre>$output</pre>";
   
   // //  TEMPORAL SOLUTION - PRECREATED FED CABLING FILE WITH A GT THAT WAS UNREACHABLE ON AFS
@@ -121,14 +205,19 @@ if (isset($_POST["getCabling"]))
             Barrel Sector
         </label>
 
-        <label for="option-four" class="pure-radio">
-            <input id="option-four" type="radio" name="searchOption" value="pcport" <?php if ($searchOption == "pcport") echo "checked" ?>>
+        <label for="option-five" class="pure-radio">
+            <input id="option-five" type="radio" name="searchOption" value="pcport" <?php if ($searchOption == "pcport") echo "checked" ?>>
            PC Port
         </label>
 
-        <label for="option-four" class="pure-radio">
-            <input id="option-four" type="radio" name="searchOption" value="pcid" <?php if ($searchOption == "pcid") echo "checked" ?>>
+        <label for="option-six" class="pure-radio">
+            <input id="option-six" type="radio" name="searchOption" value="pcid" <?php if ($searchOption == "pcid") echo "checked" ?>>
            PC ID
+        </label>
+
+        <label for="option-six" class="pure-radio">
+            <input id="option-six" type="checkbox" name="mapOption" value="true" <?php if ($mapOption == "true") echo "checked" ?>>
+           Mapping mode
         </label>
         
         <textarea name="entity_id"  placeholder="353309700" style="font-size: 13px;"><?php echo $entity_id ?></textarea>
@@ -143,8 +232,36 @@ if (isset($_POST["getCabling"]))
       ?>
     </div>
   </div>
+
+  <div class="pure-u-1-24" >
+    <div id="colorScale" style="
+    background: rgb(231,56,39);
+    background: -moz-linear-gradient(top, rgb(231,56,39) 0%, rgb(0,255,0) 50%, rgb(0,0,255) 100%);
+    background: -webkit-gradient(left top, left bottom, color-stop(0%, rgb(231,56,39)), color-stop(50%, rgb(0,255,0)), color-stop(100%, rgb(0,0,255)));
+    background: -webkit-linear-gradient(top, rgb(231,56,39) 0%, rgb(0,255,0) 50%, rgb(0,0,255) 100%);
+    background: -o-linear-gradient(top, rgb(231,56,39) 0%, rgb(0,255,0) 50%, rgb(0,0,255) 100%);
+    background: -ms-linear-gradient(top, rgb(231,56,39) 0%, rgb(0,255,0) 50%, rgb(0,0,255) 100%);
+    background: linear-gradient(to bottom, rgb(231,56,39) 0%, rgb(0,255,0) 50%, rgb(0,0,255) 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e73827', endColorstr='#0000ff', GradientType=0 ); 
+    text-align: center;
+    border-radius: 6px;
+    width: 66%;
+    height: 500px;
+    <?php if ($mapOption !== "true") echo "display: none;" ?>" 
+    >
+      <div style="position: relative;
+                  left: 100%;
+                  padding-top: 5px;">
+        <div style="position: relative; top: 0px;"><?php echo sprintf("%.2f", $currMax); ?></div>
+        <div style="position: relative; top: 100px;"><?php echo sprintf("%.2f", ($currMax - $currMin) * 0.75 + $currMin); ?></div>
+        <div style="position: relative; top: 200px;"><?php echo sprintf("%.2f", ($currMax + $currMin) * 0.50); ?></div>
+        <div style="position: relative; top: 300px;"><?php echo sprintf("%.2f", ($currMax - $currMin) * 0.25 + $currMin); ?></div>
+        <div style="position: relative; top: 400px;"><?php echo sprintf("%.2f", $currMin); ?></div>
+      </div>
+    </div>
+  </div>
   
-  <div class="pure-u-5-6" style="transform: scale(1.0); transform-origin: 0 0;">
+  <div class="pure-u-19-24" style="transform: scale(1.0); transform-origin: 0 0;">
     <div class="l-box" style="text-align: center;">
       <?php 
         if (isset($_POST["getCabling"]))
