@@ -16,6 +16,8 @@ To see the all available information about any module just hover over it - the i
 
 The cabling may change with time so the user has the possibility to specify the needed ```Global Tag```. However this tag has to be known by the current inside-the-tool installation of CMSSW (See maintenance section).
 
+There is also the possibility to map values to the associated ```< id >```. If the user posseses a text file in the form ```<id> <value>``` (each entry in separate row) and checks ```Mapping mode``` the result will be a map of values inside the Pixel Detector. The colors on the map will no longer be random. Instead a color scale is generated which will also be visible in the GUI (to the left of the map).
+
 # Maintenance
 
 The code requires a bit of knowledge of:
