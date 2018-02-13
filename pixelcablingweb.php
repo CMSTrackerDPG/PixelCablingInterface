@@ -74,9 +74,7 @@ if (isset($_POST["getCabling"]))
     {
       // if (strlen(trim(" ", $entity_idSpl[$i])) == 0) continue;
 
-      $lineSpl = explode(" ", $entity_idSpl[$i]);
-
-
+      $lineSpl = explode(" ", trim($entity_idSpl[$i]));
 
       $currVal = floatval($lineSpl[1]);
 
@@ -102,10 +100,13 @@ if (isset($_POST["getCabling"]))
       // if (strlen(trim(" ", $entity_idSpl[$i])) == 0) continue;
 
       $currStr = str_replace("\r", "", $entity_idSpl[$i]);
-      $lineSpl = explode(" ", $currStr);
+      $lineSpl = explode(" ", trim($currStr));
 
-      $RGB = GetPaletteColorForValue(floatval($lineSpl[1]), $currMin, $currMax);
-      exec("echo '$lineSpl[0] $RGB' >> $inputFileName"); // append (>>) to the file
+      $generalID = $lineSpl[0];
+      $inputVal = floatval($lineSpl[1]);
+
+      $RGB = GetPaletteColorForValue($inputVal, $currMin, $currMax);
+      exec("echo '$generalID $RGB' >> $inputFileName"); // append (>>) to the file
     }
     $useRandomBinColors = "0";
   }
@@ -188,39 +189,25 @@ if (isset($_POST["getCabling"]))
   <div class="pure-u-1-6">
     <div class="l-box">
       <form class="pure-form" enctype = "multipart/form-data" action = "pixelcablingweb.php" method = "POST">
-        <legend>Insert Pixel IDs to be marked:</legend>
-        
-        <label for="option-two" class="pure-radio">
-          <input id="option-two" type="radio" name="searchOption" value="rawid" <?php if ($searchOption == "rawid") echo "checked" ?> >
-            Det ID
-        </label>
-        
-        <label for="option-three" class="pure-radio">
-            <input id="option-three" type="radio" name="searchOption" value="fedid" <?php if ($searchOption == "fedid") echo "checked" ?>>
-            FED ID [+CH/CH/...]
-        </label>
-        
-        <label for="option-four" class="pure-radio">
-            <input id="option-four" type="radio" name="searchOption" value="sectorid" <?php if ($searchOption == "sectorid") echo "checked" ?>>
-            Barrel Sector
-        </label>
+        <!-- <legend>Insert Pixel IDs to be marked:</legend> -->
 
-        <label for="option-five" class="pure-radio">
-            <input id="option-five" type="radio" name="searchOption" value="pcport" <?php if ($searchOption == "pcport") echo "checked" ?>>
-           PC Port
-        </label>
+        <label for="idSelect">Generic ID type:</label>
+        <select id="idSelect" name="searchOption" style="width: 100%;">
+          <option value="rawid" <?php if ($searchOption == "rawid") echo "selected" ?>>Det ID (raw or online)</option>
+          <option value="fedid" <?php if ($searchOption == "fedid") echo "selected" ?>>FED ID [+CH/CH/...]</option>
+          <option value="sectorid" <?php if ($searchOption == "sectorid") echo "selected" ?>>Barrel Sector</option>
+          <option value="halfshellid" <?php if ($searchOption == "halfshellid") echo "selected" ?>>Half Shell</option>
+          <option value="pcport" <?php if ($searchOption == "pcport") echo "selected" ?>>PC Port</option>
+          <option value="pcid" <?php if ($searchOption == "pcid") echo "selected" ?>>PC ID</option>
+        </select>
 
-        <label for="option-six" class="pure-radio">
-            <input id="option-six" type="radio" name="searchOption" value="pcid" <?php if ($searchOption == "pcid") echo "checked" ?>>
-           PC ID
-        </label>
-
-        <label for="option-six" class="pure-radio">
-            <input id="option-six" type="checkbox" name="mapOption" value="true" <?php if ($mapOption == "true") echo "checked" ?>>
+        <label for="option-mapping" class="pure-radio" style="text-align: right;">
+            <input id="option-mapping" type="checkbox" name="mapOption" value="true" <?php if ($mapOption == "true") echo "checked" ?>>
            Mapping mode
         </label>
         
-        <textarea name="entity_id"  placeholder="353309700" style="font-size: 13px;"><?php echo $entity_id ?></textarea>
+        <label for="idEntries">List of entries:</label>
+        <textarea id="idEntries" name="entity_id"  placeholder="353309700" style="font-size: 13px;"><?php echo $entity_id ?></textarea>
 
         <label for="GT_id" style="margin-top: 5px; display: block;">Global Tag:</label>
         <input name="GT_id" id="GT_id" style="width: 100%; margin: 5px 0px; font-size: 13px; text-align: center;" <?php echo "placeholder=\"".$gtPlaceholder."\" value=\"".$GT_id."\""; ?>>

@@ -29,6 +29,8 @@ class PixelTrackerMap:
     self.cablingInfoFEDID = cablingInfoFEDID
     self.searchOption     = searchOption
     self.useRandomColors  = randomColors
+
+    self.isIDInAFormOfString = None
     
     for i in range(maxPxBarrel):
       self.geometryFilenames.append("DATA/Geometry/vertices_barrel_" + str(i + 1))
@@ -42,6 +44,7 @@ class PixelTrackerMap:
         lineSpl = line.strip().split(" ") # <generic id> + R G B
         
         objID = lineSpl[0]
+
         channels = []
         
         objIDSpl = objID.split("+") # FEDID + Ch: 1340+1/20
@@ -55,9 +58,18 @@ class PixelTrackerMap:
         
         if len(objID.strip()) == 0:
           continue
+
+        # Differentiate between numeric and string input ID
+        try:
+          objID = int(objID)
+          self.isIDInAFormOfString = False
+        except:
+          objID = objID.upper()
+          self.isIDInAFormOfString = True
+
         
         # print(objID)
-        if int(objID) not in self.inputModules:
+        if objID not in self.inputModules:
           if len(lineSpl) > 1:
 
             colorStr = ""
@@ -68,11 +80,11 @@ class PixelTrackerMap:
               colorStr = "".join([R + ", " + G + ", " + B])
             else:
               colorStr = "".join([lineSpl[1] + ", " + lineSpl[2] + ", " + lineSpl[3]])
-            self.inputModules.update({int(objID) : [colorStr, channels]})
+            self.inputModules.update({objID : [colorStr, channels]})
           else:
-            self.inputModules.update({int(objID) : ["255, 0, 0", channels]})   
-        elif int(objID) in self.inputModules and len(lineSpl) > 1:  # another instance of given FEDID is specified somewhere else, so add current channels to the existing list 
-          self.inputModules[int(objID)][1] = self.inputModules[int(objID)][1] + channels
+            self.inputModules.update({objID : ["255, 0, 0", channels]})   
+        elif objID in self.inputModules and len(lineSpl) > 1:  # another instance of given FEDID is specified somewhere else, so add current channels to the existing list 
+          self.inputModules[objID][1] = self.inputModules[objID][1] + channels
           
     # print(self.inputModules)
   def DrawMap(self):
@@ -149,7 +161,7 @@ class PixelTrackerMap:
     rawId = line.strip().split(" ")[0]
     onlineId = line.strip().split(" ")[1]
     vertices = line.strip().split("\"")[1]
-    # infoDic = {"detId" : rawId, "oid" : onlineId}
+    infoDic = {"detId" : rawId, "oid" : onlineId}
     
     if rawId in self.cablingInfoDetID:
       infoDic = self.cablingInfoDetID[rawId]
@@ -177,12 +189,19 @@ class PixelTrackerMap:
       else:
         fillColor = defaultFillColor
         
+    elif self.searchOption == "halfshellid":
+      shell = onlineId.split("_")[1].upper()
+      if shell in self.inputModules:
+        fillColor = self.inputModules[shell][0]
+      else:
+        fillColor = defaultFillColor
+
     elif self.searchOption == "sectorid" and onlineId[0] == "B":
       sector = int(onlineId.split("_")[2][3:])
       if sector in self.inputModules:
         fillColor = self.inputModules[sector][0]
       else:
-        fillColor = defaultFillColor;
+        fillColor = defaultFillColor
     
     elif self.searchOption == "pcport" and onlineId[0] == "F":
       if int(infoDic["PC port"]) in self.inputModules:
@@ -198,10 +217,16 @@ class PixelTrackerMap:
         fillColor = defaultFillColor;
 
     else: #detid    
-      if int(rawId) in self.inputModules:
-        fillColor = self.inputModules[int(rawId)][0]         
+      if self.isIDInAFormOfString == True:
+        if onlineId in self.inputModules:
+          fillColor = self.inputModules[onlineId][0]         
+        else:
+          fillColor = defaultFillColor
       else:
-        fillColor = defaultFillColor
+        if int(rawId) in self.inputModules:
+          fillColor = self.inputModules[int(rawId)][0]         
+        else:
+          fillColor = defaultFillColor
       
     return vertices, fillColor, infoDic
   
