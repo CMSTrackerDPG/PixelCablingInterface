@@ -6,6 +6,7 @@ $execOut = "";
 $execErr = "";
 
 $cablingTxt = "";
+$entity_id = "";
 
 $searchOption = "rawid";
 $outDicTxtFileName = "/tmp/pixelcablingweb_cablingInfo.dat";
@@ -49,7 +50,6 @@ function GetPaletteColorForValue($val, $currMin, $currMax)
 if (isset($_POST["getCabling"]))
 {
   $cablingTxt   = $_POST["getCabling"];
-  $entity_id    = $_POST["entity_id"];
   $searchOption = $_POST["searchOption"];
   $mapOption    = $_POST["mapOption"];
   $GT_id        = trim($_POST["GT_id"]);
@@ -64,6 +64,16 @@ if (isset($_POST["getCabling"]))
   exec("echo > $inputFileName"); // create empty input file for Pixel Tracker Map Builder
 
   // echo $inputFileName."\n";
+
+  if ($_FILES["fileToUpload"]["tmp_name"] === "")
+  {
+    $entity_id = $_POST["entity_id"];
+  }
+  else
+  {
+    $entity_id = file_get_contents($_FILES["fileToUpload"]["tmp_name"]);
+  }
+  
 
   $entity_idSpl;
   if ($mapOption === "true")
@@ -208,12 +218,14 @@ if (isset($_POST["getCabling"]))
         
         <label for="idEntries">List of entries:</label>
         <textarea id="idEntries" name="entity_id"  placeholder="353309700" style="font-size: 13px;"><?php echo $entity_id ?></textarea>
+        <input type="file" name="fileToUpload" id="fileToUpload">
 
         <label for="GT_id" style="margin-top: 5px; display: block;">Global Tag:</label>
         <input name="GT_id" id="GT_id" style="width: 100%; margin: 5px 0px; font-size: 13px; text-align: center;" <?php echo "placeholder=\"".$gtPlaceholder."\" value=\"".$GT_id."\""; ?>>
         
         <button class="pure-button pure-button-primary" name="getCabling" type="submit" value="GetCabling" style="width: 100%">Get Cabling</button>
       </form>
+
       <?php
         echo "<p style=\"text-align: right;\">Delta time: ".$deltaTime." s</p>";
       ?>
