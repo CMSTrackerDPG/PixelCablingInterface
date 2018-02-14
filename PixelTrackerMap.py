@@ -218,6 +218,7 @@ class PixelTrackerMap:
 
     else: #detid    
       if self.isIDInAFormOfString == True:
+        onlineId = onlineId.upper() # in string mode all characters are converted to upper case
         if onlineId in self.inputModules:
           fillColor = self.inputModules[onlineId][0]         
         else:
@@ -354,14 +355,18 @@ with open(cablingFileName, "r") as inputCabl:
           tmpDic.update({"detId" : detId})
         else:
           tmpDic.update({item.replace("/", " ") : strSpl[categoryNamePositionDic[item]]})
+      # print(detId, tmpDic)
 
       # DETID DICTIONARY
-      pixelCablingInfoDic.update({detId : tmpDic})
+      pixelCablingInfoDic.update({detId : deepcopy(tmpDic)})
+
       # FEDID DICTIONARY
       if fedId in pixelCablingInfoDicFed:
-        pixelCablingInfoDicFed[fedId].update(tmpDic);
+        pixelCablingInfoDicFed[fedId].update(deepcopy(tmpDic))
       else:
-        pixelCablingInfoDicFed.update({fedId : tmpDic})
+        pixelCablingInfoDicFed.update({fedId : deepcopy(tmpDic)})
+
+# print(pixelCablingInfoDic)
       
 # update data using information grabbed from CMSSWDB
 if fedDBInfoFileName != "":
@@ -383,6 +388,8 @@ if fedDBInfoFileName != "":
         tmpDic.update({"FED channel" : fedCh})
         
         pixelCablingInfoDic.update({detId : tmpDic})
+
+# print(pixelCablingInfoDic)            
 
 # save pixelCablingInfoDic to the textfile
 with open(outDicTxtFileName, "w") as tmpFile:
