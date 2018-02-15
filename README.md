@@ -5,8 +5,9 @@ This is a web interface to show Pixel Detector Cabling. You can filter Pixel Pha
 1.  Det ID (rawID/onlineName), 353309700/BPix_BpI_SEC4_LYR1_LDR3F_MOD3
 2.  FED ID (with Channel), 1243+37/13
 3.  Barrel Sector
-4.  PC Port
-5.  PC ID
+4.  Half Shell
+5.  PC Port
+6.  PC ID
 
 You can provide as many inputs as you need (but they need to be of the same ```< id >``` category and in the case of the module ID all input values must be either rawID or onlineName - mixed types will not work). Inputs can be provided by hand - typing them directly into the list - or loaded from the user's file (in the latter case they will be put inside the list just after the click on the ```Get Cabling``` button). The tool will show you positions of modules having different ```< id >``` using different (random) colors. 
 
